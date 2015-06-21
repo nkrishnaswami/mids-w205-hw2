@@ -23,16 +23,16 @@ def main():
         auth = tweepy.AppAuthHandler(creds.consumer_key, creds.consumer_secret)
         query_ops={'since': today-week,
                    'until': today}
-    tg = TweetGetter(auth)
+    collector = Collector(auth)
     if stream:
         print("Starting streaming")
-        tg.stream(query_terms=query_terms,
+        collector.stream(query_terms=query_terms,
                   query_ops=query_ops)
     else:
         print("Starting search")
-        tg.search(query_terms=query_terms,
+        collector.search(query_terms=query_terms,
                   query_ops=query_ops)
-    print('All done!  Last ID processed={0}'.format(tg.last_id))
+    print('All done!  Last ID processed={0}'.format(collector.last_id))
 
 if __name__ == '__main__':
     main()

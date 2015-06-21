@@ -59,8 +59,7 @@ class Collector(object):
                               wait_on_rate_limit=True,
                               wait_on_rate_limit_notify=True)
     def make_sink(self,key):
-        #rs = RollingSink('tweets/'+key+'/tweets-{0:0>4}.jsn', 10000, RecordSink(S3Sink(self.conn, 'nkrishna-mids205-hw2')))
-        rs = RollingSink('tweets/'+key+'/tweets-{0:0>4}.jsn', 10000, RecordSink(FileSink()))
+        rs = RollingSink('tweets/'+key+'/tweets-{0:0>4}.jsn', 10000, RecordSink(S3Sink(self.conn, 'nkrishna-mids205-hw2')))
         return rs
 
     def search(self, query_terms=[], query_ops={'count':1500}, page_limit=0):
