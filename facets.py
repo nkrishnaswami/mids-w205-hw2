@@ -1,20 +1,34 @@
 from __future__ import print_function
+import json
 
-class FilteringFacet(object):
-    def __init__(self, matcher):
+class Facet(object):
+    def emit(self, tweet):
+        """Send structured tweet contents to a facet for potential output"""
+        raise NotImplementedError
+    def close(self):
+        """Indicate final record has been sent to the facet"""
+        raise NotImplementedError
+    
+class FilteringFacet(Facet):
+    def __init__(self, matcher, make_sink):
         self.sinks = {}
         self.matcher = matcher
-    def emit(self, record):
-        key = self.matcher.check(record)
+        self.make_sink = make_sink
+    def emit(self, tweet):
+        key = self.matcher.check(tweet['text'])
         if key:
-            sink = self.sinks[key]
-            if not sink:
-                sink = self.sinks[key] = self.matcher.make_sink(key)
-            sink.emit(record)
+            key = key.lower()
+            if not key in self.sinks:
+                sink = self.make_sink(key)
+                self.sinks[key] = sink
+            else:
+                sink = self.sinks[key]                
+            sink.write(json.dumps(tweet))
             return True
         return False
     def close(self):
-        for (key,sink) in self.sinks.iterpairs():
+        for (key,sink) in self.sinks.iteritems():
             print("Closing sink for key {0}".format(key));
             sink.close()
         self.sinks = {}
+
