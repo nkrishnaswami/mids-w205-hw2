@@ -14,6 +14,7 @@ from facets import FilteringFacet
 from matchers import RegexMatcher
 from sinks import *
 from listeners import EmittingListener
+from credentials import Credentials
 
 class _CollectionProgress(object):
     def __init__(self, method, query_ops):
@@ -52,8 +53,8 @@ class Collector(object):
         from configparser import RawConfigParser
         creds = Credentials(os.path.expanduser('~/.aws/credentials'))
         self.conn = S3Connection(
-            creds.aws_access_key_id,
-            creds.aws_secret_access_key)
+            creds.default_aws_access_key_id,
+            creds.default_aws_secret_access_key)
         self.auth = auth
         self.api = tweepy.API(auth_handler=self.auth,
                               compression=True,
