@@ -1,5 +1,6 @@
 from __future__ import print_function
 from io import BytesIO
+import gc
 import os.path
 import os
 from boto.s3.key import Key
@@ -80,6 +81,8 @@ class S3Sink(Sink):
             S3Sink.caches[bucket_name] = set(x.name for x in self.bucket.list())
             
     def open(self, filename):
+        if self.is_open:
+            self.close()
         self.key = Key(self.bucket, filename)
         self._io = BytesIO()
         self.is_open = True
@@ -90,10 +93,13 @@ class S3Sink(Sink):
         """
     def close(self):
         if self.key and self._io:
+            print("Flushing contents to s3://{0}/{1}".format(self.bucket.name, self.key.name))
             self.key.set_contents_from_string(self._io.getvalue())
-        self.key = None
-        self._io = None
+            self._io.close()
+            self._io = None
+            self.key = None
         self.is_open = False
+        gc.collect()
     def exists(self, path):
         return path in S3Sink.caches[self.bucket.name]
 

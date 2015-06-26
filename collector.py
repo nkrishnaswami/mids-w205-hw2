@@ -49,20 +49,24 @@ class Collector(object):
     def __init__(self, auth):
         self.last_id = None
         from boto.s3.connection import S3Connection
-        self.conn = S3Connection('AKIAIGBBG3DZFM4MTI4A','9dbOzRaVesmWePrmyX2bFx+T2EA3EHGQWYpvgneP')
+        from configparser import RawConfigParser
+        creds = Credentials(os.path.expanduser('~/.aws/credentials'))
+        self.conn = S3Connection(
+            creds.aws_access_key_id,
+            creds.aws_secret_access_key)
         self.auth = auth
         self.api = tweepy.API(auth_handler=self.auth,
                               compression=True,
                               retry_errors=set((104,)),
-                              retry_count=5,
-                              timeout=330,
+                              retry_count=10,
+                              timeout=700,
                               wait_on_rate_limit=True,
                               wait_on_rate_limit_notify=True)
     def make_sink(self,key):
-        rs = RollingSink('tweets/'+key+'/tweets-{0:0>4}.jsn', 10000, RecordSink(S3Sink(self.conn, 'nkrishna-mids205-hw2')))
+        rs = RollingSink(key+'/tweets-{0:0>4}.jsn', 10000, RecordSink(S3Sink(self.conn, 'nkrishna-mids205-hw2')))
         return rs
 
-    def search(self, query_terms=[], query_ops={'count':1500}, page_limit=0):
+    def search(self, query_terms=[], query_ops={'count':1000}, page_limit=0):
         self._process(self._search, query_terms, query_ops, page_limit)
     def stream(self, query_terms=[], query_ops={}):
         self._process(self._stream, query_terms, query_ops, None)
@@ -82,7 +86,7 @@ class Collector(object):
             query_ops['max_id']=self.last_id
         # max out tweets per page
         if 'count' not in query_ops:
-            query_ops['count']=1500
+            query_ops['count']=1000
         
         q = '(' + ' OR '.join(query_terms) + ')'
         

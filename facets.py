@@ -19,6 +19,7 @@ class FilteringFacet(Facet):
         if key:
             key = key.lower()
             if not key in self.sinks:
+                print("Making sink for key: {0}".format(key))
                 sink = self.make_sink(key)
                 self.sinks[key] = sink
             else:

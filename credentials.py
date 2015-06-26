@@ -1,11 +1,11 @@
 from ConfigParser import RawConfigParser
 
-class Credentials(object):
+class Credentials(dict):
+    __getattr__= dict.__getitem__
     def __init__(self, filename):
-        cp = RawConfigParser()
         with open(filename) as cfg:    
             cp.readfp(cfg)
-            self.consumer_key = cp.get('consumer', 'key')
-            self.consumer_secret = cp.get('consumer', 'secret')
-            self.access_token = cp.get('access', 'token')
-            self.access_token_secret = cp.get('access', 'secret')
+            cp = RawConfigParser()
+            for sect in cp.sections():
+                for opt in cp.options(sect):
+                    self.dict[sect + '_' + opt] = cp.get(sect, opt)
