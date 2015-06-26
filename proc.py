@@ -41,10 +41,12 @@ def processFile(filename):
                     not word.startswith('#') and
                     not word.startswith('http')):
                     stem = s.stem(word.lower())
-                    if len(stem) == 1 and not stem.isalnum():
-                        stem = ''
                 else:
                     stem = word.lower()
+                if len(stem) == 1 and not stem.isalnum():
+                    continue
+                if stem in s.stopwords:
+                    continue
                 if stem != '':
                     fd[stem] += 1
     return fd
@@ -61,8 +63,8 @@ for tag in [u'#nbafinals2015', u'#nbafinals2015_#warriors', u'#warriors']:
         
 
 
-# In[164]:
+# In[170]:
 
 for tag in sorted(cfd.keys()):
-    cfd[tag].plot(15, title=tag)
+    cfd[tag].plot(25, title=tag)
 
