@@ -6,25 +6,25 @@ The acquisition code is split into a few kinds of objects:
 
 * `acq.py`: driver program.
   * Creates a tweet Collector in search or stream mode.
-  * As the only user, I decided not to expose the query terms and
-   options as parameters, but to modify them in place.
-  * Currently, that means the tags to look for, the language, and the timeframe are in this source file.
+  * As the only user, I decided not to expose the query terms and options as parameters, but to modify them in place. This should be revisited when reused.
+    * Currently, that means the tags to look for, the language, and the timeframe are in this source file.
 * `credentials.py`: easy access to credentials in config files
-  * I read my twitter credentials in `~/.tweepy`
-  * I read my AWS credentials from `~/aws/credentials`.
+  * twitter credentials are read from `~/.tweepy`
+  * AWS credentials are read from `~/aws/credentials`.
 * `collector.py`: talks to twitter
-  * gets data from Twitter using either search or stream APIs
-  * it controls the pathnames of the rolling log files via the sink creation callback `makeSink`.  This should move to its interface.
-  * if streaming, it uses the `EmittingListener` in `listener.py` as its listener
-  * It passes each tweet to a Facet
+  * The Collector gets data from Twitter using either search or stream APIs
+  * It controls the pathnames of the rolling log files via the sink creation callback `makeSink`.  This should move to the interface. This is currently where the S3 AWS credentials are used.
+  * When streaming, it uses the `EmittingListener` in `listener.py` as its listener
+  * The Collector then passes each tweet to a Facet
     * The facet is invoked as a context manager using `contextutil.closing()`, guaranteeing that the facet's `close` method will be called in case of exception.  This will cause in data in progress to be written to file(s).
     * It passes a callback for creating a sink from a key to the Facet.  This is kind of ugly, and the decisions of what S3 bucket to use and what the file path format string are should be exposed in the interface.
   * As a convenience, I added a `progress.counter` subclass that will show a progress bar if using the search API for a specific date range, and a tweet counter otherwise.
+  * The last `id` and `created_at` timestamp.  In certain retry cases, if the last ID is set, it will send that to the API endpoint as a max or since ID.
 * `listeners.py`: stream listener used in Collector
   * The most interesting bit here is the `pysigset.suspended_signals` context manager.
     * This wraps the code sending a tweet from `on_status` to the appropriate sink.
     * It ensures that external signals (specifically, SIGINT and SIGTERM) will only be delivered after finishing the sink write operations, when they are in a consistent state to be closed when the Facet is closed.
-    * For the search API, there is analogous code in the Collector.  It should probably be moved to its own class to facilitate new collectors' being written.
+    * For the search API, there is analogous code in the Collector.  It should probably be moved to its own class to facilitate new collectors' being written, possibly shared with the listener.
 * `facets.py`: decides whether or not to process a tweet, and what Sink(s) to send it to.
   * Right now, there is only one, `FilteringFacet`, which uses a `RegexpMatcher` to identify messages with particular tags, and for composing the file paths for the corresponding sink.
 * `matchers.py`: policy class for the `FilteringFacet`.
@@ -49,8 +49,8 @@ The last category corresponds to actual words, so the tokens are downcased and p
 Since the stemmer will turn punctuation into standalone tokens, single-character tokens are skipped unless alphanumeric.  If the token is in the `nltk` stopwords list, it is also skipped.
 Finally, empty tokens are skipped.  At this point, the token is added to a `FreqDist` (one per file being processed).
 Once all tweets in a file are processed, the FreqDist is returned,
-`Parallel` presents the `FreqDist`s to the caller as a list. I loop over these updating `ConditionalFreqDist`' using the tag as the condition.
-After processing all the tags, I use each condition/tag's `FreqDist` to make an overall `FreqDist` with contition `'all'`.
+`Parallel` presents the `FreqDist`s to the caller as a sequence. I loop over these updating `ConditionalFreqDist`' using the tag as the condition.
+After processing all the tags, I use each condition/tag's `FreqDist` to make an overall `FreqDist` with condition `'all'`, and finally loop over the tags and plot each `FrequencyDistribution`.
 
 ## Output
 
